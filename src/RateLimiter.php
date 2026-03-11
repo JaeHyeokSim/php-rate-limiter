@@ -1,53 +1,60 @@
 <?php
 
+require_once __DIR__ . '/Storage/MemoryStorage.php';
+require_once __DIR__ . '/Exception/RateLimitExceededException.php';
+
 class RateLimiter {
 
 	private $limit;
 	private $window;
-	private $storage = [];
+	private $storage;
 
-	public function __construct($limit, $windowSeconds) {
+	public function __construct($limit, $windowSeconds, $storage = null) {
 
 		$this->limit = $limit;
 		$this->window = $windowSeconds;
+		$this->storage = $storage ?: new MemoryStorage();
 	}
 
 	public function allow($key) {
 
 		$now = time();
 
-		if (!isset($this->storage[$key])) {
-			$this->storage[$key] = [];
+		$requests = $this->storage->get($key);
+
+		if (!$requests) {
+			$requests = [];
 		}
 
-		// 오래된 요청 제거
-		$this->storage[$key] = array_filter(
-			$this->storage[$key],
+		$requests = array_filter(
+			$requests,
 			function ($timestamp) use ($now) {
 				return $timestamp > ($now - $this->window);
 			}
 		);
 
-		if (count($this->storage[$key]) >= $this->limit) {
-			return false;
+		if (count($requests) >= $this->limit) {
+
+			$retryAfter = min($requests) + $this->window - $now;
+
+			throw new RateLimitExceededException($retryAfter);
 		}
 
-		$this->storage[$key][] = $now;
+		$requests[] = $now;
+
+		$this->storage->set($key, $requests);
 
 		return true;
 	}
 
 	public function getRemaining($key) {
 
-		if (!isset($this->storage[$key])) {
+		$requests = $this->storage->get($key);
+
+		if (!$requests) {
 			return $this->limit;
 		}
 
-		return $this->limit - count($this->storage[$key]);
-	}
-
-	public function reset($key) {
-
-		unset($this->storage[$key]);
+		return $this->limit - count($requests);
 	}
 }

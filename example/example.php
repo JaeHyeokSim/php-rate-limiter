@@ -1,6 +1,6 @@
 <?php
 
-require "../src/RateLimiter.php";
+require_once "../src/RateLimiter.php";
 
 $limiter = new RateLimiter(3, 10);
 
@@ -8,14 +8,15 @@ $key = "user_1";
 
 for ($i = 1; $i <= 5; $i++) {
 
-	if ($limiter->allow($key)) {
+	try {
+
+		$limiter->allow($key);
 
 		echo "Request {$i} allowed\n";
 
-	} else {
+	} catch (RateLimitExceededException $e) {
 
-		echo "Request {$i} blocked\n";
-
+		echo "Blocked. Retry after: " . $e->getRetryAfter() . " seconds\n";
 	}
 
 	sleep(1);

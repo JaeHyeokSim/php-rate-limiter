@@ -75,4 +75,14 @@ class RateLimiter
 
         return ($oldest + $this->window) - time();
     }
+
+    public function getLimit()
+    {
+        return $this->limit;
+    }
+
+    public function getWindow()
+    {
+        return $this->window;
+    }
 }

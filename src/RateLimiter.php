@@ -10,7 +10,7 @@ class RateLimiter
     private $window;
     private $storage;
 
-    public function __construct($limit, $windowSeconds, $storage = null)
+    public function __construct($limit = 5, $windowSeconds = 1, $storage = null)
     {
 
         $this->limit = $limit;
